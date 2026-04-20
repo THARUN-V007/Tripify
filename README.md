@@ -1,39 +1,46 @@
-# ✈️ Tripify — AI-Powered Travel Planner
+# ✈️ Tripify — AI Travel Planner
 
-Tripify is a full-stack React web application that helps users plan personalized trips using AI-generated destination suggestions, real destination photos, and a built-in expense tracker — all backed by Firebase.
+So I built this during my semester break after I spent like 3 hours trying to plan a trip to Coorg with my friends and we just ended up doing nothing because nobody could agree on anything and the budget math was a mess. I thought — okay what if an app just *does* all of that for you? You say what kind of trip you want, it gives you options, you pick one, done.
 
----
+That's basically Tripify. It uses Gemini AI to suggest destinations, pulls real photos from Unsplash, and has a built-in expense tracker so you don't overspend. I also connected it to Firebase so trips actually save and you can come back to them later.
 
-## 🚀 Features
-
-- 🔐 **Email/Password Authentication** — Firebase Auth with protected routes
-- 🏠 **My Trips Dashboard** — view all saved trips with destination photos
-- 🗑️ **Delete Trips (CRUD)** — delete trips (and their expenses) from the dashboard
-- 🤖 **AI Destination Suggestions** — powered by Google Gemini API
-- 🖼️ **Real Destination Photos** — fetched from Unsplash API
-- 📅 **Day-by-Day Itinerary** — AI-generated, auto-saved to Firestore
-- 💸 **Expense Tracker** — add, categorize, and track expenses per trip with a budget limit
-- 🧾 **Delete Expenses** — remove expense entries from a trip
-- 📱 **Fully Responsive UI** — built with Tailwind CSS
-- ⚡ **Lazy-loaded Pages** — React.lazy + Suspense for performance
+Honestly pretty happy with how it turned out. Took about 2.5 weeks of on-and-off work.
 
 ---
 
-## 🛠️ Tech Stack
+## What it does
 
-| Layer        | Technology                     |
-|--------------|-------------------------------|
-| Frontend     | React 19 + Vite 8             |
-| Styling      | Tailwind CSS v3               |
-| Routing      | React Router DOM v7           |
-| Auth + DB    | Firebase v12 (Auth + Firestore) |
-| AI Engine    | Google Gemini API (`@google/generative-ai`) |
-| Photos       | Unsplash REST API             |
-| State Mgmt   | React Context API             |
+Okay so here's the cool stuff:
+
+- **Login / Signup** with email and password (Firebase Auth). Nothing fancy but it works and routes are protected so you can't just navigate to `/dashboard` without being logged in
+- **AI Destination Suggestions** — you fill out a form (trip type, budget level, duration) and Gemini spits out 3 destination suggestions as a JSON array. This part took the longest to get right because the model kept returning markdown code blocks instead of raw JSON
+- **Real photos** for each destination pulled from Unsplash. Makes the cards look actually good
+- Once you pick a destination, Gemini generates a full **day-by-day itinerary** and it saves to Firestore so it doesn't regenerate every time you open the trip (saved me a lot of API calls)
+- **Expense Tracker** per trip — you can add expenses by category, set a budget limit, and see how much you've spent. It's functional, maybe not the prettiest
+- **My Trips Dashboard** where all your saved trips show up with the destination photo
+- You can delete trips (and their expenses get deleted too, I had to handle that separately)
+
+The whole thing is responsive so it works on mobile too.
 
 ---
 
-## 📁 Project Structure
+## Tech Stack
+
+| Layer | Tech |
+|---|---|
+| Frontend | React 19 + Vite 8 |
+| Styling | Tailwind CSS v3 |
+| Routing | React Router DOM v7 |
+| Auth + DB | Firebase v12 (Auth + Firestore) |
+| AI | Google Gemini API (`@google/generative-ai`) |
+| Photos | Unsplash REST API |
+| State | React Context API |
+
+I went with Vite because CRA is honestly too slow and I'd already used Vite before. Tailwind made the responsive stuff way easier than writing media queries by hand.
+
+---
+
+## Project Structure
 
 ```
 tripify/
@@ -74,11 +81,13 @@ tripify/
 └── package.json
 ```
 
+I tried to keep the services folder clean — Firebase stuff in one file, AI calls in another, etc. Makes it easier to swap things out later.
+
 ---
 
-## ⚙️ Environment Variables
+## Environment Variables
 
-Create a `.env` file at the project root with the following keys:
+Make a `.env` file at the root of the project and add these. Don't skip this step or nothing will work.
 
 ```env
 VITE_FIREBASE_API_KEY=your_firebase_api_key
@@ -93,11 +102,11 @@ VITE_GEMINI_MODEL=gemini-1.5-flash-001
 VITE_UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 ```
 
-> ⚠️ Never push `.env` to GitHub. It is already in `.gitignore`.
+> Important: `.env` is already in `.gitignore` but double check before pushing. I've seen people accidentally push API keys and then have to rotate everything.
 
 ---
 
-## 🔧 Setup & Installation
+## Setup
 
 ```bash
 # 1. Clone the repository
@@ -115,51 +124,59 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
+**Tip:** If you get a blank screen after login, it's almost always a missing or wrong env variable. Check the browser console first.
+
 ---
 
-## 🔑 API Keys Setup
+## Getting the API Keys
 
-### Firebase (Auth + Firestore)
-1. Go to [firebase.google.com](https://firebase.google.com)
-2. Create a project → Add a Web App → Copy the `firebaseConfig` object
-3. Enable **Authentication** → Email/Password provider
-4. Enable **Firestore Database** → Start in test mode
+### Firebase
+1. Go to [firebase.google.com](https://firebase.google.com) and create a project
+2. Add a Web App and copy the `firebaseConfig` values into your `.env`
+3. Go to Authentication > Sign-in method > enable Email/Password
+4. Go to Firestore Database > Create database > Start in **test mode** (important — production mode will block all reads/writes until you set rules)
 
-### Google Gemini AI
+> If you forget to enable Email/Password auth, login will silently fail. Spent 20 minutes debugging that once.
+
+### Google Gemini
 1. Go to [aistudio.google.com](https://aistudio.google.com)
-2. Click **Get API Key** → Create new key → Copy
+2. Click Get API Key > Create new key
+3. Paste it into `.env` as `VITE_GEMINI_API_KEY`
 
-### Unsplash Photos
-1. Go to [unsplash.com/developers](https://unsplash.com/developers)
-2. Register a new application → Copy the **Access Key**
+> The free tier has rate limits. If you're testing a lot, slow down between requests or you'll get 429 errors.
 
----
+### Unsplash
+1. Go to [unsplash.com/developers](https://unsplash.com/developers) and register an app
+2. Copy the Access Key (not the Secret Key) into `.env`
 
-## 📄 Page Breakdown
-
-| Page            | Route            | Description                                         |
-|-----------------|------------------|-----------------------------------------------------|
-| Login           | `/login`         | Sign up or sign in with email and password          |
-| Home            | `/home`          | Trip preference form with animated background slider |
-| Suggestions     | `/suggestions`   | 3 AI-generated destination cards with photos        |
-| Trip Detail     | `/trip/:id`      | Full day-by-day itinerary, auto-generated by Gemini |
-| Expense Tracker | `/expenses/:id`  | Add and track expenses per trip with budget limit   |
-| Dashboard       | `/dashboard`     | All saved trips for the logged-in user              |
+> New Unsplash apps are in demo mode which gives 50 requests/hour. More than enough for testing.
 
 ---
 
-## 🧠 How the AI Works
+## Pages
 
-1. User selects **trip type** (Beach, Mountains, City), **budget level**, and **duration** on the Home page
-2. Preferences are sent as a structured prompt to **Google Gemini**
-3. Gemini returns exactly 3 destination suggestions as a JSON array
-4. **Unsplash API** fetches a landscape photo for each destination
-5. User selects a destination → trip is saved to Firestore
-6. On the Trip page, Gemini generates a full day-by-day itinerary (also saved to Firestore so it's not regenerated on revisit)
+| Page | Route | What it does |
+|---|---|---|
+| Login | `/login` | Sign up or sign in |
+| Home | `/home` | Pick trip type, budget, duration |
+| Suggestions | `/suggestions` | 3 AI destination cards with photos |
+| Trip Detail | `/trip/:id` | Full itinerary day by day |
+| Expense Tracker | `/expenses/:id` | Track spending per trip |
+| Dashboard | `/dashboard` | All your saved trips |
 
 ---
 
-## 🗄️ Firestore Data Model
+## How the AI part works
+
+The Home page has a form where you pick a trip type (Beach / Mountains / City), budget level, and how many days. That gets formatted into a prompt and sent to Gemini, which returns exactly 3 destinations as a JSON array.
+
+Then for each destination, Unsplash fetches a landscape photo using the destination name as the search query. When you click on one and save the trip, Gemini also generates a day-by-day itinerary which gets stored in Firestore. That way if you open the trip again it just loads from the database instead of calling Gemini again.
+
+Getting the AI to return clean JSON was the trickiest part honestly. Had to be very explicit in the prompt that I didn't want markdown formatting, just raw JSON.
+
+---
+
+## Firestore Data Model
 
 ```
 trips/ (collection)
@@ -184,29 +201,46 @@ trips/ (collection)
               └── createdAt
 ```
 
----
-
-## ⚛️ React Concepts Demonstrated
-
-| Concept                  | Where Used                                      |
-|--------------------------|-------------------------------------------------|
-| `useState`               | All pages — form state, loading, data           |
-| `useEffect`              | Data fetching in SuggestionsPage, TripPage, etc.|
-| `useContext`             | `useAuth()` across all protected pages          |
-| `useMemo`                | Derived values (HomePage active trip, sorting)  |
-| `useCallback`            | Stable handlers (HomePage, SuggestionsPage, DashboardPage) |
-| `useRef`                 | Input focus (LoginPage email)                   |
-| Context API              | `src/context/AuthProvider.jsx` — global auth state |
-| Controlled Components    | All form inputs (budget, duration, expenses)    |
-| Conditional Rendering    | Loading states, error states, empty states      |
-| Protected Routes         | `ProtectedRoute` component in `App.jsx`         |
-| React Router v7          | 6 routes with lazy loading                      |
-| `React.lazy` + `Suspense`| All page components lazily loaded in `App.jsx`  |
-| Lifting State Up         | Preferences passed via `location.state`         |
+Expenses are stored as a sub-collection under each trip. This made delete-trip logic a bit annoying because Firestore doesn't auto-delete sub-collections, so I had to query and delete the expenses separately before deleting the trip document.
 
 ---
 
-## 🚦 Build & Deployment
+## React Concepts (for the rubric)
+
+My professor wanted to see specific React concepts used — here's where each one shows up. I'm not just listing them, I actually used all of these intentionally.
+
+| Concept | Where |
+|---|---|
+| `useState` | All pages — form state, loading flags, data |
+| `useEffect` | Fetching data in SuggestionsPage, TripPage, etc. |
+| `useContext` | `useAuth()` used across all protected pages |
+| `useMemo` | Derived values (active trip in HomePage, sorting) |
+| `useCallback` | Stable event handlers in HomePage, SuggestionsPage, DashboardPage |
+| `useRef` | Auto-focus on email input in LoginPage |
+| Context API | `AuthProvider.jsx` wraps the whole app for global auth state |
+| Controlled Components | Every form input (budget, duration, expenses) |
+| Conditional Rendering | Loading states, error states, empty states everywhere |
+| Protected Routes | `ProtectedRoute` component in `App.jsx` |
+| React Router v7 | 6 routes total |
+| `React.lazy` + `Suspense` | All page components are lazily loaded |
+| Lifting State Up | Trip preferences passed between pages via `location.state` |
+
+---
+
+## Known Issues / Future Plans
+
+Being honest here:
+
+- The expense tracker UI is a bit rough. The layout on smaller phones looks a bit cramped and I want to redo it with a cleaner card layout
+- No edit functionality yet — you can't update a trip's name or duration after saving it
+- The AI sometimes generates a generic itinerary if the destination is not very well known. Need to improve the prompt
+- I want to add a map view eventually (Google Maps or Leaflet) to show the destinations
+- Dark mode would be nice
+- Right now if the Unsplash API fails, the card just shows no image. Should add a fallback
+
+---
+
+## Build & Deploy
 
 ```bash
 # Build for production
@@ -225,14 +259,14 @@ firebase init hosting   # set dist/ as public directory
 firebase deploy
 ```
 
----
-
-## 🧑‍💻 Author
-
-**Tharun V**
+Vercel is honestly the easiest option here. Just connect your GitHub repo and it auto-deploys on every push. Make sure you add all the env variables in the Vercel dashboard under Project Settings > Environment Variables — this is easy to forget.
 
 ---
 
-## 📜 License
+## Author
 
-MIT License — free to use and modify.
+**Tharun V** — 1st year CS student. Built this to actually learn React properly and it worked out better than expected. If something's broken or you have suggestions, feel free to open an issue.
+
+---
+
+MIT License
